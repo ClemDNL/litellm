@@ -522,10 +522,10 @@ def dnl_route_is_unauthenticated_data_plane(
     it) in user_api_key_auth.py -- one shared predicate, not two
     independently-derived conditions, so the two sites cannot disagree.
 
-    Default scope is narrow: openai_routes + anthropic_routes + google_routes
-    (chat/completions, embeddings, responses, moderations, audio, rerank,
-    realtime, /v1/models, messages, images, videos, batches, files,
-    fine_tuning, assistants, threads, vector_stores, search, ocr,
+    Scope is deliberately narrow: openai_routes + anthropic_routes +
+    google_routes (chat/completions, embeddings, responses, moderations,
+    audio, rerank, realtime, /v1/models, messages, images, videos, batches,
+    files, fine_tuning, assistants, threads, vector_stores, search, ocr,
     containers, ...) -- the full OpenAI/Anthropic/Google-compatible serving
     surface, matched via RouteChecks.check_route_access, which handles
     exact, "prefix*" wildcard, and "{param}" template routes -- a plain
@@ -533,10 +533,10 @@ def dnl_route_is_unauthenticated_data_plane(
     "/responses/{response_id}", since get_request_route() returns the
     concrete request path, never the route template.
 
-    Set general_settings.dnl_unauthenticated_llm_routes_broad: true to widen
-    to RouteChecks.is_llm_api_route() instead (also covers MCP tool-call,
-    agent invocation, and litellm-native RAG ingest/query routes) -- only if
-    DNL actually configures those on this proxy.
+    Deliberately does NOT offer a broader opt-in (e.g. MCP tool-call, agent
+    invocation, or RAG ingest/query routes): keep the exposed surface fixed
+    to what DNL's current callers actually use. Widen
+    _DNL_NARROW_DATA_PLANE_ROUTES explicitly, with review, if that changes.
 
     Hard off whenever JWT, OAuth2, OAuth2-proxy, or a custom auth function is
     configured, so a request actually authenticated via one of those for the
@@ -560,8 +560,6 @@ def dnl_route_is_unauthenticated_data_plane(
 
     from litellm.proxy.auth.route_checks import RouteChecks
 
-    if general_settings.get("dnl_unauthenticated_llm_routes_broad", False):
-        return RouteChecks.is_llm_api_route(route=route)
     return RouteChecks.check_route_access(
         route=route, allowed_routes=_DNL_NARROW_DATA_PLANE_ROUTES
     )
